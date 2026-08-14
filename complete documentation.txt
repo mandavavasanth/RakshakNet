@@ -1,0 +1,1361 @@
+# RakshakNet - Disaster Emergency Management System
+## Complete Application Documentation
+
+**Version**: 1.0.0  
+**Last Updated**: 2026-08-13  
+**Status**: Production Ready
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#executive-summary)
+2. [Architecture Overview](#architecture-overview)
+3. [Project Structure](#project-structure)
+4. [Technology Stack](#technology-stack)
+5. [Backend Setup & Configuration](#backend-setup--configuration)
+6. [Frontend Setup & Configuration](#frontend-setup--configuration)
+7. [API Endpoints Specification](#api-endpoints-specification)
+8. [Database Schema](#database-schema)
+9. [WebSocket Events](#websocket-events)
+10. [Hardware Integration](#hardware-integration)
+11. [Frontend Components & Features](#frontend-components--features)
+12. [Deployment Guide](#deployment-guide)
+13. [Troubleshooting & FAQs](#troubleshooting--faqs)
+14. [Security & Best Practices](#security--best-practices)
+
+---
+
+## Executive Summary
+
+**RashakNet** is a comprehensive disaster emergency response management system designed to coordinate rescue operations during emergencies. The system enables:
+
+- **Real-time Alert Management**: Receive, track, and manage emergency alerts from IoT devices
+- **Team Coordination**: Assign rescue teams to alerts and monitor deployment status
+- **Live Dashboard**: Real-time web interface with map-based alert visualization
+- **Hardware Integration**: Connect Arduino/LoRa devices for emergency notifications
+- **WebSocket Broadcasting**: Push real-time updates to all connected dashboard clients
+- **Analytics & Statistics**: Monitor response times and alert statistics
+- **Secure API**: X-API-Key authentication for hardware ingestion endpoints
+
+**Key Features:**
+- ✅ Multi-alert type support (SOS, Medical, Water, Food)
+- ✅ Geographic mapping with latitude/longitude coordinates
+- ✅ Real-time WebSocket event streaming
+- ✅ PostgreSQL database with Alembic migrations
+- ✅ REST API with comprehensive filtering
+- ✅ Chat & communication features
+- ✅ Audit logging & compliance tracking
+- ✅ Mobile-responsive React dashboard
+
+---
+
+## Architecture Overview
+
+### High-Level System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   RashakNet Ecosystem                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────────┐     ┌──────────────────┐            │
+│  │  Arduino/LoRa    │     │  Web Browser     │            │
+│  │  Devices (USB)   │     │  (React + Vite)  │            │
+│  └────────┬─────────┘     └────────┬─────────┘            │
+│           │                       │                       │
+│           │                       │                       │
+│  ┌────────▼──────────────────────▼─────────┐              │
+│  │     FastAPI Backend (Port 8000)         │              │
+│  │  ┌──────────────────────────────────┐   │              │
+│  │  │  REST API Endpoints              │   │              │
+│  │  │  - POST /api/alert (X-API-Key)   │   │              │
+│  │  │  - GET /api/alerts               │   │              │
+│  │  │  - GET /api/teams                │   │              │
+│  │  │  - GET /api/stats                │   │              │
+│  │  │  - WebSocket /ws/alerts          │   │              │
+│  │  └──────────────────────────────────┘   │              │
+│  └────────┬─────────────────────────────────┘              │
+│           │                                               │
+│  ┌────────▼──────────────────────────────┐                │
+│  │   PostgreSQL Database                 │                │
+│  │   ├─ alerts (Emergency records)       │                │
+│  │   ├─ rescue_teams (Team info)         │                │
+│  │   └─ Additional tables (audit, chat)  │                │
+│  └───────────────────────────────────────┘                │
+│                                                             │
+│  ┌──────────────────────────────────────┐                 │
+│  │  Node.js Express Server (Port 5001)  │                 │
+│  │  - Handles additional frontend reqs  │                 │
+│  │  - WebSocket gateway                 │                 │
+│  │  - Cron job scheduling               │                 │
+│  └──────────────────────────────────────┘                 │
+│                                                             │
+│  ┌──────────────────────────────────────┐                 │
+│  │  Serial Bridge (Python)              │                 │
+│  │  - Reads Arduino serial data         │                 │
+│  │  - Posts to FastAPI /api/alert       │                 │
+│  └──────────────────────────────────────┘                 │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+1. **Alert Creation**: Arduino device → Serial bridge → POST /api/alert → Database
+2. **Broadcasting**: New alert → FastAPI WebSocket manager → All connected clients
+3. **Team Assignment**: Dashboard UI → PATCH /api/alerts/{id} → Database
+4. **Status Update**: WebSocket notification → Dashboard (real-time refresh)
+
+---
+
+## Project Structure
+
+```
+RAKSHAKNET/
+│
+├── 📄 main.py                          # FastAPI application entry point
+├── 📄 database.py                      # Database configuration & session management
+├── 📄 models.py                        # SQLAlchemy ORM models
+├── 📄 schemas.py                       # Pydantic request/response schemas
+├── 📄 security.py                      # API key verification middleware
+├── 📄 websocket.py                     # WebSocket connection manager
+│
+├── routes/                             # FastAPI route modules
+│   ├── __init__.py
+│   ├── alerts.py                       # Alert CRUD endpoints
+│   ├── teams.py                        # Rescue team endpoints
+│   └── stats.py                        # Statistics aggregation
+│
+├── serial_bridge/                      # Hardware integration
+│   ├── bridge.py                       # Serial → API bridge (Python)
+│   └── requirements.txt
+│
+├── alembic/                            # Database migrations
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/
+│       └── 001_initial_migration.py
+│
+├── src/                                # React frontend
+│   ├── main.jsx                        # React entry point
+│   ├── App.jsx                         # Main application component
+│   ├── App.css                         # Global styles
+│   ├── index.css                       # Base styles
+│   ├── supabaseClient.js               # Supabase configuration
+│   ├── ai/                             # AI modules
+│   │   ├── pdfGenerator.js             # PDF report generation
+│   │   ├── predictiveAnalytics.js      # Analytics engine
+│   │   └── triageEngine.js             # Emergency triage logic
+│   ├── chat/                           # Chat components
+│   │   ├── DispatchChat.jsx            # Chat interface
+│   │   └── TimelineModal.jsx           # Timeline view
+│   ├── drones/                         # Drone management
+│   │   ├── DroneHUD.jsx                # Drone display
+│   │   └── droneState.js               # Drone state management
+│   ├── teams/                          # Team management
+│   │   └── InventoryModal.jsx          # Team inventory UI
+│   ├── voice/                          # Voice control
+│   │   └── voiceController.js          # Voice commands
+│   └── assets/                         # Static assets
+│
+├── public/                             # Public assets
+│   ├── manifest.json                   # PWA manifest
+│   └── sw.js                           # Service worker
+│
+├── 📄 server.js                        # Node.js Express server
+├── 📄 db.js                            # Database utilities (Node.js)
+├── 📄 package.json                     # JavaScript dependencies
+├── 📄 requirements.txt                 # Python dependencies
+├── 📄 vite.config.js                   # Vite build configuration
+├── 📄 alembic.ini                      # Alembic configuration
+├── 📄 index.html                       # HTML entry point
+│
+├── 📄 .env.example                     # Environment template
+├── 📄 README.md                        # Initial setup guide
+├── 📄 README_FASTAPI.md                # FastAPI documentation
+└── 📄 Open_Dashboard.bat               # Windows launcher script
+```
+
+---
+
+## Technology Stack
+
+### Backend
+| Technology | Purpose | Version |
+|-----------|---------|---------|
+| **FastAPI** | Web framework | ^0.110.0 |
+| **Uvicorn** | ASGI server | ^0.28.0 |
+| **SQLAlchemy** | ORM | ^2.0.0 |
+| **PostgreSQL** | Primary database | Latest |
+| **SQLite** | Fallback database | Included |
+| **Alembic** | Database migrations | ^1.13.0 |
+| **WebSockets** | Real-time communication | ^12.0 |
+| **Pydantic** | Data validation | ^2.6.0 |
+
+### Frontend
+| Technology | Purpose | Version |
+|-----------|---------|---------|
+| **React** | UI library | ^19.2.8 |
+| **Vite** | Build tool | ^8.2.0 |
+| **Tailwind CSS** | Styling | ^4.3.3 |
+| **Leaflet** | Map visualization | ^1.9.4 |
+| **Chart.js** | Data visualization | ^4.5.1 |
+| **Lucide React** | Icon library | ^1.29.0 |
+
+### Node.js Services
+| Technology | Purpose | Version |
+|-----------|---------|---------|
+| **Express** | Web framework | ^5.2.1 |
+| **WebSocket (ws)** | Real-time communication | ^8.21.3 |
+| **node-cron** | Task scheduling | ^4.6.0 |
+| **Supabase JS** | Backend services | ^2.112.2 |
+
+### Hardware Integration
+| Technology | Purpose |
+|-----------|---------|
+| **PySerial** | USB serial communication |
+| **Arduino Mega** | Primary hardware platform |
+| **LoRa** | Long-range wireless communication |
+
+---
+
+## Backend Setup & Configuration
+
+### Step 1: Install Python Dependencies
+
+```bash
+cd d:\RAKSHAKNET
+pip install -r requirements.txt
+```
+
+**Dependencies include:**
+- fastapi, uvicorn (web server)
+- sqlalchemy, psycopg2-binary (database)
+- alembic (migrations)
+- websockets (real-time)
+- pydantic (validation)
+- python-dotenv (env config)
+
+### Step 2: Configure Environment Variables
+
+Create or update `.env` file in the project root:
+
+```env
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=rashaknet_db
+DB_USER=postgres
+DB_PASSWORD=your_secure_password
+DB_ECHO=False
+
+# FastAPI Configuration
+API_KEY=rashaknet-secret-key-2026
+FRONTEND_URL=http://localhost:5173
+
+# Supabase Configuration (Optional)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+
+# Server Configuration
+ENVIRONMENT=development
+LOG_LEVEL=INFO
+```
+
+### Step 3: Set Up PostgreSQL Database
+
+If using PostgreSQL (recommended for production):
+
+```bash
+# 1. Ensure PostgreSQL is running
+# 2. Create database
+psql -U postgres -c "CREATE DATABASE rashaknet_db;"
+
+# 3. Create user (optional)
+psql -U postgres -c "CREATE USER rashaknet_user WITH PASSWORD 'password123';"
+psql -U postgres -c "ALTER ROLE rashaknet_user CREATEDB;"
+```
+
+**SQLite Fallback**: If PostgreSQL is unavailable, the system automatically uses `rashaknet.db` SQLite file.
+
+### Step 4: Run Database Migrations
+
+```bash
+# Initialize migrations (if needed)
+alembic init alembic
+
+# Apply all pending migrations
+alembic upgrade head
+
+# Create new migration after model changes
+alembic revision --autogenerate -m "Description of changes"
+```
+
+### Step 5: Start FastAPI Server
+
+```bash
+# Development (with hot reload)
+uvicorn main:app --reload --port 8000
+
+# Production
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+**API Documentation**:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+---
+
+## Frontend Setup & Configuration
+
+### Step 1: Install Node.js Dependencies
+
+```bash
+# Install npm packages
+npm install
+
+# Or using yarn
+yarn install
+```
+
+### Step 2: Configure Frontend Environment
+
+Create or update `.env.local` in project root:
+
+```env
+VITE_API_URL=http://localhost:8000
+VITE_WS_URL=ws://localhost:8000
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```
+
+### Step 3: Run Development Server
+
+```bash
+# Start Vite dev server (React only)
+npm run dev
+
+# Start Node.js server (separate terminal)
+npm run server
+
+# Or run both concurrently
+npm run dev:all
+```
+
+**Frontend URLs**:
+- React App: http://localhost:5173
+- Node.js Server: http://localhost:5001
+
+### Step 4: Build for Production
+
+```bash
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+---
+
+## API Endpoints Specification
+
+### Emergency Alerts Endpoints
+
+#### 1. **Create Alert** (POST)
+```http
+POST /api/alert
+Header: X-API-Key: rashaknet-secret-key-2026
+Content-Type: application/json
+
+{
+  "deviceId": "DEV001",
+  "helpType": "Medical",
+  "lat": 17.3850,
+  "lng": 78.4867,
+  "timestamp": "2026-08-13T17:32:00Z"  # Optional; uses current time if omitted
+}
+```
+
+**Response** (201 Created):
+```json
+{
+  "id": 1,
+  "deviceId": "DEV001",
+  "helpType": "Medical",
+  "lat": 17.3850,
+  "lng": 78.4867,
+  "timestamp": "2026-08-13T17:32:00Z",
+  "status": "Pending",
+  "assignedTeam": null
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized`: Missing or invalid X-API-Key
+- `422 Unprocessable Entity`: Invalid request body
+
+---
+
+#### 2. **List Alerts** (GET)
+```http
+GET /api/alerts?status=Pending&helpType=Medical&from_date=2026-08-01T00:00:00Z&to_date=2026-08-14T00:00:00Z
+```
+
+**Query Parameters**:
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `status` | string | Yes | Filter by status: `Pending`, `Assigned`, `Completed` |
+| `helpType` | string | Yes | Filter by type: `SOS`, `Medical`, `Water`, `Food` |
+| `from_date` | ISO datetime | Yes | Alerts from this date forward |
+| `to_date` | ISO datetime | Yes | Alerts up to this date |
+
+**Response** (200 OK):
+```json
+[
+  {
+    "id": 1,
+    "deviceId": "DEV001",
+    "helpType": "Medical",
+    "lat": 17.3850,
+    "lng": 78.4867,
+    "timestamp": "2026-08-13T17:32:00Z",
+    "status": "Pending",
+    "assignedTeam": null
+  },
+  {
+    "id": 2,
+    "deviceId": "DEV002",
+    "helpType": "SOS",
+    "lat": 17.3900,
+    "lng": 78.4900,
+    "timestamp": "2026-08-13T17:28:00Z",
+    "status": "Assigned",
+    "assignedTeam": "Alpha Team"
+  }
+]
+```
+
+---
+
+#### 3. **Get Alert Details** (GET)
+```http
+GET /api/alerts/{id}
+```
+
+**Response** (200 OK):
+```json
+{
+  "id": 1,
+  "deviceId": "DEV001",
+  "helpType": "Medical",
+  "lat": 17.3850,
+  "lng": 78.4867,
+  "timestamp": "2026-08-13T17:32:00Z",
+  "status": "Pending",
+  "assignedTeam": null
+}
+```
+
+**Error**: `404 Not Found` if alert doesn't exist.
+
+---
+
+#### 4. **Update Alert** (PATCH)
+```http
+PATCH /api/alerts/{id}
+Header: X-API-Key: rashaknet-secret-key-2026
+Content-Type: application/json
+
+{
+  "status": "Assigned",
+  "assignedTeam": "Alpha Team"
+}
+```
+
+**Allowed Status Values**: `Pending`, `Assigned`, `Completed`
+
+**Response** (200 OK): Updated alert object
+
+---
+
+### Rescue Teams Endpoints
+
+#### 1. **List All Teams** (GET)
+```http
+GET /api/teams
+```
+
+**Response** (200 OK):
+```json
+[
+  {
+    "id": 1,
+    "name": "Alpha Team",
+    "status": "Available",
+    "members": 5
+  },
+  {
+    "id": 2,
+    "name": "Bravo Team",
+    "status": "Deployed",
+    "members": 4
+  }
+]
+```
+
+---
+
+#### 2. **Create Team** (POST)
+```http
+POST /api/teams
+Header: X-API-Key: rashaknet-secret-key-2026
+Content-Type: application/json
+
+{
+  "name": "Charlie Team",
+  "status": "Available",
+  "members": 6
+}
+```
+
+**Response** (201 Created):
+```json
+{
+  "id": 3,
+  "name": "Charlie Team",
+  "status": "Available",
+  "members": 6
+}
+```
+
+---
+
+#### 3. **Update Team** (PATCH)
+```http
+PATCH /api/teams/{id}
+Header: X-API-Key: rashaknet-secret-key-2026
+Content-Type: application/json
+
+{
+  "status": "Deployed",
+  "members": 5
+}
+```
+
+**Allowed Status Values**: `Available`, `Deployed`
+
+**Response** (200 OK): Updated team object
+
+---
+
+### Statistics Endpoints
+
+#### **Get Dashboard Statistics** (GET)
+```http
+GET /api/stats
+```
+
+**Response** (200 OK):
+```json
+{
+  "total_alerts": 42,
+  "counts_by_helpType": {
+    "SOS": 12,
+    "Medical": 18,
+    "Water": 7,
+    "Food": 5
+  },
+  "counts_by_status": {
+    "Pending": 5,
+    "Assigned": 20,
+    "Completed": 17
+  },
+  "avg_response_time_minutes": 15.5
+}
+```
+
+---
+
+## Database Schema
+
+### Table: `alerts`
+
+```sql
+CREATE TABLE alerts (
+  id INTEGER PRIMARY KEY AUTO_INCREMENT,
+  deviceId VARCHAR(255) NOT NULL INDEXED,
+  helpType VARCHAR(50) NOT NULL INDEXED,      -- SOS, Medical, Water, Food
+  lat FLOAT NOT NULL,                          -- Latitude coordinate
+  lng FLOAT NOT NULL,                          -- Longitude coordinate
+  timestamp DATETIME NOT NULL DEFAULT NOW(),   -- Alert creation time
+  status VARCHAR(50) DEFAULT 'Pending' INDEXED, -- Pending, Assigned, Completed
+  assignedTeam VARCHAR(255) NULLABLE           -- Name/ID of rescue team
+);
+```
+
+**Indexes**: `deviceId`, `helpType`, `status`, `timestamp`
+
+**Sample Data**:
+```
+id | deviceId | helpType | lat    | lng    | timestamp            | status   | assignedTeam
+---+----------+----------+--------+--------+----------------------+----------+---------------
+1  | DEV001   | Medical  | 17.385 | 78.487 | 2026-08-13 17:32:00 | Pending  | NULL
+2  | DEV002   | SOS      | 17.398 | 78.495 | 2026-08-13 17:28:00 | Assigned | Alpha Team
+3  | DEV003   | Food     | 17.374 | 78.472 | 2026-08-13 17:22:00 | Completed| Bravo Team
+```
+
+---
+
+### Table: `rescue_teams`
+
+```sql
+CREATE TABLE rescue_teams (
+  id INTEGER PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL UNIQUE INDEXED,
+  status VARCHAR(50) DEFAULT 'Available' INDEXED, -- Available, Deployed
+  members INTEGER DEFAULT 4                    -- Team member count
+);
+```
+
+**Indexes**: `name`, `status`
+
+**Sample Data**:
+```
+id | name         | status     | members
+---+--------------+------------+--------
+1  | Alpha Team   | Available  | 5
+2  | Bravo Team   | Deployed   | 4
+3  | Charlie Team | Available  | 6
+```
+
+---
+
+### Additional Tables (Node.js Backend)
+
+#### Table: `audit_logs`
+- Tracks all critical actions for compliance
+- Fields: `id`, `action`, `timestamp`, `userId`, `details`
+
+#### Table: `chat_messages`
+- Stores dispatch chat/communication
+- Fields: `id`, `senderId`, `message`, `timestamp`, `alertId`
+
+#### Table: `team_inventory`
+- Tracks equipment and supplies
+- Fields: `id`, `teamId`, `itemName`, `quantity`, `lastUpdated`
+
+---
+
+## WebSocket Events
+
+### Connection
+```javascript
+// Client connects to WebSocket endpoint
+const ws = new WebSocket('ws://localhost:8000/ws/alerts');
+
+ws.onopen = () => {
+  console.log('Connected to alert stream');
+};
+```
+
+### Broadcasting Events
+
+#### Event: `new_alert`
+Sent when a new emergency alert is created:
+
+```json
+{
+  "event": "new_alert",
+  "data": {
+    "id": 1,
+    "deviceId": "DEV001",
+    "helpType": "Medical",
+    "lat": 17.3850,
+    "lng": 78.4867,
+    "timestamp": "2026-08-13T17:32:00Z",
+    "status": "Pending",
+    "assignedTeam": null
+  }
+}
+```
+
+#### Event: `alert_updated`
+Sent when an alert status or assignment changes:
+
+```json
+{
+  "event": "alert_updated",
+  "data": {
+    "id": 1,
+    "status": "Assigned",
+    "assignedTeam": "Alpha Team"
+  }
+}
+```
+
+#### Event: `team_status_changed`
+Sent when a team's deployment status changes:
+
+```json
+{
+  "event": "team_status_changed",
+  "data": {
+    "teamId": 1,
+    "teamName": "Alpha Team",
+    "status": "Deployed"
+  }
+}
+```
+
+### Client-Side Implementation (React)
+
+```javascript
+import { useEffect, useState } from 'react';
+
+export function AlertsComponent() {
+  const [alerts, setAlerts] = useState([]);
+
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:8000/ws/alerts');
+
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      
+      if (message.event === 'new_alert') {
+        setAlerts(prev => [message.data, ...prev]);
+      } else if (message.event === 'alert_updated') {
+        setAlerts(prev => 
+          prev.map(alert => 
+            alert.id === message.data.id 
+              ? { ...alert, ...message.data }
+              : alert
+          )
+        );
+      }
+    };
+
+    return () => ws.close();
+  }, []);
+
+  return (
+    <div>
+      {alerts.map(alert => (
+        <div key={alert.id}>{alert.deviceId} - {alert.helpType}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## Hardware Integration
+
+### Serial Bridge Architecture
+
+The **Serial Bridge** (Python) connects Arduino/LoRa devices to the FastAPI backend:
+
+```
+Arduino Mega (USB) → PySerial → Serial Bridge → POST /api/alert → Database
+```
+
+### Serial Bridge Installation
+
+```bash
+# Navigate to serial_bridge directory
+cd serial_bridge
+
+# Install dependencies
+pip install -r requirements.txt
+# Installs: pyserial, requests, python-dotenv
+
+# Run bridge with specific COM port
+python bridge.py --port COM3 --baud 9600
+```
+
+### Arduino Serial Data Format
+
+The bridge accepts two formats from Arduino:
+
+#### Format A: JSON (Recommended)
+```json
+{
+  "node_id": "01",
+  "status": "EMERGENCY",
+  "latitude": 16.544893,
+  "longitude": 81.521240
+}
+```
+
+#### Format B: Comma-Separated Key-Value Pairs
+```
+NODE:01,STATUS:EMERGENCY,LAT:16.544893,LNG:81.521240
+```
+
+### Bridge Configuration (`.env`)
+
+```env
+# Supabase endpoints
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+
+# Or FastAPI endpoint
+FASTAPI_URL=http://localhost:8000
+API_KEY=rashaknet-secret-key-2026
+```
+
+### Bridge Processing Logic
+
+1. **Receive** data from Arduino serial port
+2. **Parse** JSON or key-value format
+3. **Validate** coordinates and device ID
+4. **POST** to `/api/alert` with X-API-Key header
+5. **Log** success/failure to console
+
+### Example Arduino Code
+
+```cpp
+#include <ArduinoJson.h>
+#include <SoftwareSerial.h>
+
+// Create JSON document
+StaticJsonDocument<200> doc;
+
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  // On emergency trigger
+  if (emergencyButtonPressed) {
+    doc["node_id"] = "01";
+    doc["status"] = "EMERGENCY";
+    doc["latitude"] = getGPS_Latitude();
+    doc["longitude"] = getGPS_Longitude();
+    
+    // Serialize and send
+    serializeJson(doc, Serial);
+    Serial.println();
+    
+    delay(1000);
+  }
+}
+```
+
+---
+
+## Frontend Components & Features
+
+### Main Application (App.jsx)
+
+**Core Features**:
+- 🚨 Emergency alert dashboard with real-time updates
+- 📍 Interactive map visualization (Leaflet)
+- 👥 Rescue team management and status tracking
+- 📊 Statistics and analytics dashboard
+- 💬 Dispatch communication chat
+- 🎤 Voice command support
+- 🚁 Drone deployment HUD
+- 📋 Team inventory management
+- 🌓 Dark/Light theme toggle
+- 🔔 Audio alert notifications
+
+### Component Hierarchy
+
+```
+App.jsx
+├── AlertsDashboard
+│   ├── AlertsList
+│   ├── AlertCard
+│   └── AlertMap
+├── TeamsPanel
+│   ├── TeamCard
+│   ├── TeamDeployment
+│   └── InventoryModal
+├── StatisticsView
+│   ├── StatsCard
+│   ├── AlertChart
+│   └── ResponseTimeChart
+├── DispatchChat
+│   ├── ChatMessage
+│   └── MessageInput
+├── DroneHUD
+│   ├── DroneStatus
+│   └── DroneControl
+├── VoiceController
+│   └── CommandProcessor
+└── SettingsPanel
+    ├── ThemeToggle
+    └── NotificationSettings
+```
+
+### Key Components
+
+#### AlertsDashboard
+- Displays list of all emergency alerts
+- Real-time filtering by status/type
+- One-click team assignment
+- Priority-based sorting
+
+#### TeamDeployment
+- Visualizes team locations on map
+- Tracks response times
+- Shows team inventory
+- Manages team status changes
+
+#### DispatchChat
+- Real-time communication between dispatch and teams
+- Alert-linked chat threads
+- Command log with timestamps
+- Search and filter capabilities
+
+#### DroneHUD
+- Drone video stream display
+- Flight path visualization
+- Altitude/speed monitoring
+- Manual/autonomous controls
+
+#### VoiceController
+- Voice-to-command conversion
+- Commands: "Deploy team", "Update alert", "Get stats"
+- Fallback text input option
+- Multilingual support ready
+
+---
+
+## Deployment Guide
+
+### Development Deployment
+
+```bash
+# 1. Clone repository
+git clone <repo-url>
+cd RAKSHAKNET
+
+# 2. Backend setup
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn main:app --reload --port 8000
+
+# 3. Frontend setup (new terminal)
+npm install
+npm run dev:all
+```
+
+### Production Deployment (Linux/Ubuntu)
+
+#### Option 1: Using Systemd
+
+**Create FastAPI Service** (`/etc/systemd/system/rashaknet-api.service`):
+```ini
+[Unit]
+Description=RashakNet FastAPI Service
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/rashaknet
+Environment="PATH=/var/www/rashaknet/venv/bin"
+ExecStart=/var/www/rashaknet/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Create Node.js Service** (`/etc/systemd/system/rashaknet-node.service`):
+```ini
+[Unit]
+Description=RashakNet Node.js Server
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/rashaknet
+ExecStart=/usr/bin/node server.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Enable and start**:
+```bash
+sudo systemctl enable rashaknet-api
+sudo systemctl start rashaknet-api
+sudo systemctl enable rashaknet-node
+sudo systemctl start rashaknet-node
+```
+
+#### Option 2: Using Docker
+
+Create `Dockerfile`:
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+Build and run:
+```bash
+docker build -t rashaknet-api .
+docker run -p 8000:8000 --env-file .env rashaknet-api
+```
+
+#### Option 3: Using Nginx Reverse Proxy
+
+```nginx
+upstream fastapi {
+    server 127.0.0.1:8000;
+}
+
+upstream nodejs {
+    server 127.0.0.1:5001;
+}
+
+server {
+    listen 80;
+    server_name api.rashaknet.com;
+
+    # FastAPI
+    location /api/ {
+        proxy_pass http://fastapi;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # WebSocket
+    location /ws/ {
+        proxy_pass http://fastapi;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # Node.js
+    location / {
+        proxy_pass http://nodejs;
+        proxy_set_header Host $host;
+    }
+}
+```
+
+### Environment-Specific Configuration
+
+#### Development `.env`
+```env
+ENVIRONMENT=development
+DEBUG=True
+DB_HOST=localhost
+API_KEY=dev-secret-key
+```
+
+#### Production `.env`
+```env
+ENVIRONMENT=production
+DEBUG=False
+DB_HOST=prod-db-server
+DB_USER=rashaknet_prod
+API_KEY=<strong-random-key>
+FRONTEND_URL=https://dashboard.rashaknet.com
+LOG_LEVEL=WARNING
+```
+
+---
+
+## Troubleshooting & FAQs
+
+### Backend Issues
+
+**Q1: PostgreSQL Connection Failed**
+```
+Error: could not translate host name "localhost" to address
+```
+**Solution**:
+- Ensure PostgreSQL is running: `sudo systemctl start postgresql`
+- Check credentials in `.env`
+- Verify database exists: `psql -l`
+- System falls back to SQLite if PostgreSQL unavailable
+
+---
+
+**Q2: API Key Authentication Failing**
+```
+Error: Invalid X-API-Key header
+```
+**Solution**:
+- Verify `X-API-Key` header is included in request
+- Check header value matches `.env` `API_KEY`
+- Example: `curl -H "X-API-Key: rashaknet-secret-key-2026" http://localhost:8000/api/alerts`
+
+---
+
+**Q3: WebSocket Connection Not Streaming**
+```
+WebSocket connection established but no events received
+```
+**Solution**:
+- Verify WebSocket endpoint: `ws://localhost:8000/ws/alerts`
+- Check browser console for errors
+- Ensure FastAPI server is running with `--reload` disabled in production
+- Test with: `websocat ws://localhost:8000/ws/alerts`
+
+---
+
+**Q4: Alembic Migration Failed**
+```
+Error: Can't locate revision identified by...
+```
+**Solution**:
+```bash
+# Reset to initial state (development only)
+alembic downgrade base
+alembic upgrade head
+
+# Or re-initialize
+rm alembic/versions/*.py
+alembic revision --autogenerate -m "Initial"
+alembic upgrade head
+```
+
+---
+
+### Frontend Issues
+
+**Q5: Port 5173 Already in Use**
+```
+Error: Port 5173 is already in use
+```
+**Solution**:
+```bash
+# Use different port
+npm run dev -- --port 5174
+
+# Or kill existing process
+lsof -ti:5173 | xargs kill -9  # macOS/Linux
+netstat -ano | findstr :5173   # Windows
+```
+
+---
+
+**Q6: CORS Errors**
+```
+Access to XMLHttpRequest blocked by CORS policy
+```
+**Solution**:
+- Verify FastAPI has CORS middleware enabled (check main.py)
+- Update `FRONTEND_URL` in backend `.env`
+- For development: `allow_origins=["*"]`
+
+---
+
+**Q7: WebSocket Connected but No Real-Time Updates**
+```
+WebSocket says connected but alerts don't refresh
+```
+**Solution**:
+- Check browser Network tab → WS connection
+- Verify alert POST to `/api/alert` succeeds
+- Check browser console for JavaScript errors
+- Test with: `curl -X POST http://localhost:8000/api/alert ...`
+
+---
+
+### Hardware Integration Issues
+
+**Q8: Serial Bridge Can't Find Arduino**
+```
+Error: Serial port COM3 not found
+```
+**Solution**:
+```bash
+# List available ports
+python -m serial.tools.list_ports
+
+# Use correct port
+python bridge.py --port COM4 --baud 9600
+
+# Check Arduino IDE device manager for port
+```
+
+---
+
+**Q9: Serial Data Parsing Fails**
+```
+Error: Failed to parse serial data
+```
+**Solution**:
+- Verify Arduino sends JSON or KEY:VALUE format
+- Check baud rate matches (default 9600)
+- Add serial monitor logging to Arduino code
+- Test with: `python -m serial.tools.miniterm COM3 9600`
+
+---
+
+### Database Issues
+
+**Q10: SQLite Database Locked**
+```
+Error: database is locked
+```
+**Solution**:
+```bash
+# Close any other processes
+lsof rashaknet.db
+
+# Check database integrity
+sqlite3 rashaknet.db "PRAGMA integrity_check;"
+
+# Recreate if corrupted
+rm rashaknet.db
+alembic upgrade head
+```
+
+---
+
+## Security & Best Practices
+
+### API Security
+
+#### 1. X-API-Key Authentication
+```python
+# All POST endpoints require X-API-Key header
+POST /api/alert
+X-API-Key: rashaknet-secret-key-2026
+```
+
+**Best Practices**:
+- ✅ Use strong, randomly generated keys (32+ characters)
+- ✅ Store in `.env` (never in code)
+- ✅ Rotate keys periodically in production
+- ✅ Use different keys for dev/prod environments
+- ✅ Log unauthorized attempts
+
+#### 2. CORS Configuration
+```python
+# Production: Restrict to known domains
+allow_origins=[
+    "https://dashboard.rashaknet.com",
+    "https://mobile.rashaknet.com"
+]
+```
+
+#### 3. HTTPS/TLS
+```nginx
+# Use Let's Encrypt SSL certificates
+server {
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/api.rashaknet.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.rashaknet.com/privkey.pem;
+}
+```
+
+### Data Protection
+
+#### Database
+- ✅ Use PostgreSQL in production (not SQLite)
+- ✅ Enable backups: `pg_dump -h host -U user -d rashaknet_db > backup.sql`
+- ✅ Set strong database password
+- ✅ Restrict database access to application server only
+
+#### Environment Variables
+- ✅ Never commit `.env` to version control
+- ✅ Use `.env.example` as template
+- ✅ Use secrets manager in production (AWS Secrets Manager, HashiCorp Vault)
+
+#### Logs
+- ✅ Don't log sensitive data (API keys, passwords)
+- ✅ Rotate logs regularly
+- ✅ Secure log file permissions: `chmod 600 app.log`
+
+### Rate Limiting
+
+```python
+# Add rate limiting to prevent abuse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+@app.post("/api/alert")
+@limiter.limit("10/minute")
+async def create_alert(...):
+    pass
+```
+
+### Input Validation
+
+```python
+# Pydantic automatically validates types
+class AlertCreate(BaseModel):
+    deviceId: str = Field(..., min_length=1, max_length=50)
+    helpType: str = Field(..., regex="^(SOS|Medical|Water|Food)$")
+    lat: float = Field(..., ge=-90, le=90)
+    lng: float = Field(..., ge=-180, le=180)
+```
+
+### Audit Logging
+
+```python
+# Log all critical actions
+async def log_action(action: str, user_id: str, details: dict):
+    db.execute(
+        "INSERT INTO audit_logs (action, user_id, details, timestamp) "
+        "VALUES (?, ?, ?, NOW())",
+        (action, user_id, json.dumps(details))
+    )
+```
+
+### Production Checklist
+
+- [ ] Use PostgreSQL (not SQLite)
+- [ ] Set strong API_KEY in `.env`
+- [ ] Enable HTTPS/TLS with valid certificates
+- [ ] Configure CORS to specific domains
+- [ ] Set up database backups
+- [ ] Enable audit logging
+- [ ] Configure rate limiting
+- [ ] Use environment-specific secrets
+- [ ] Set up monitoring and alerting
+- [ ] Document API key rotation process
+- [ ] Test disaster recovery procedures
+
+---
+
+## Additional Resources
+
+### Official Documentation
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [React](https://react.dev/)
+- [SQLAlchemy](https://docs.sqlalchemy.org/)
+- [Alembic](https://alembic.sqlalchemy.org/)
+- [Leaflet Maps](https://leafletjs.com/)
+
+### Support & Contact
+- **Issue Tracking**: Create issues in repository
+- **Documentation**: See README_FASTAPI.md for backend details
+- **Emergency Support**: Contact disaster management team
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | 2026-08-13 | Initial production release |
+| 0.9.0 | 2026-07-15 | Beta testing phase |
+| 0.1.0 | 2026-06-01 | Initial development |
+
+---
+
+**Last Updated**: 2026-08-13  
+**Maintained by**: RashakNet Development Team  
+**License**: Internal Use Only

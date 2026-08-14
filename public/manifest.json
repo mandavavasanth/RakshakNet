@@ -1,0 +1,8 @@
+{
+  "name": "RakshakNet",
+  "short_name": "RakshakNet",
+  "theme_color": "#060d06",
+  "background_color": "#060d06",
+  "display": "standalone",
+  "orientation": "portrait"
+}
