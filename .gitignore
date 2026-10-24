@@ -37,7 +37,6 @@ bridge.log
 *~
 
 # Build outputs
-dist/
 build/
 
 # OS
