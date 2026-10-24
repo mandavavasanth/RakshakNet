@@ -108,3 +108,16 @@ def delete_alert(
     db.delete(db_alert)
     db.commit()
     return {"detail": "Alert deleted"}
+
+@router.delete('/alerts')
+async def clear_all_alerts(
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    db.query(models.Alert).delete()
+    db.commit()
+    
+    # Broadcast a clear all event so the frontend can update immediately
+    await manager.broadcast({'type': 'alerts_cleared', 'data': {}})
+    
+    return {"detail": "All alerts cleared"}

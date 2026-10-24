@@ -38,8 +38,37 @@ function App() {
   const [stats, setStats] = useState(null);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [theme, setTheme] = useState('Military');
 
-  const { isConnected, lastMessage } = useWebSocket('ws://localhost:8000/ws/alerts');
+  const handleWebSocketMessage = useCallback((lastMessage) => {
+    if (!lastMessage) return;
+    const { type, data } = lastMessage;
+    if (type === 'new_alert' && data) {
+      setAlerts(prev => [data, ...prev.filter(a => a.id !== data.id)]);
+    } else if (type === 'alert_updated' && data) {
+      setAlerts(prev => prev.map(a => a.id === data.id ? { ...a, ...data } : a));
+    } else if (type === 'team_status_changed' && data) {
+      setTeams(prev => prev.map(t => t.id === data.teamId ? { ...t, status: data.status } : t));
+    } else if (type === 'alerts_cleared') {
+      setAlerts([]);
+    }
+  }, []);
+
+  const getWsUrl = () => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws/alerts`;
+  };
+
+  const { isConnected } = useWebSocket(getWsUrl(), handleWebSocketMessage);
+
+  // Handle Theme Toggle
+  useEffect(() => {
+    if (theme === 'High Contrast') {
+      document.body.classList.add('theme-high-contrast');
+    } else {
+      document.body.classList.remove('theme-high-contrast');
+    }
+  }, [theme]);
 
   // Fetch data from backend API
   const loadData = useCallback(async () => {
@@ -59,19 +88,6 @@ function App() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Handle real-time WebSocket messages
-  useEffect(() => {
-    if (!lastMessage) return;
-    const { type, data } = lastMessage;
-    if (type === 'new_alert' && data) {
-      setAlerts(prev => [data, ...prev.filter(a => a.id !== data.id)]);
-    } else if (type === 'alert_updated' && data) {
-      setAlerts(prev => prev.map(a => a.id === data.id ? { ...a, ...data } : a));
-    } else if (type === 'team_status_changed' && data) {
-      setTeams(prev => prev.map(t => t.id === data.teamId ? { ...t, status: data.status } : t));
-    }
-  }, [lastMessage]);
-
   const pendingCount = alerts.filter(a => a.status === 'Pending').length;
 
   const renderPage = () => {
@@ -83,7 +99,7 @@ function App() {
       case 'intelligence': return <AIIntelligence alerts={alerts} teams={teams} stats={stats} />;
       case 'chat': return <DispatchChat />;
       case 'history': return <MissionHistory />;
-      case 'settings': return <Settings />;
+      case 'settings': return <Settings theme={theme} setTheme={setTheme} />;
       default: return <Dashboard alerts={alerts} teams={teams} stats={stats} />;
     }
   };
@@ -92,7 +108,7 @@ function App() {
     <div className={`app-layout ${isSidebarCollapsed ? 'collapsed' : ''}`}>
       <Sidebar activePage={activePage} setActivePage={setActivePage} alertCount={pendingCount} isCollapsed={isSidebarCollapsed} />
       <div className="main-content">
-        <Header isConnected={isConnected} alertCount={pendingCount} toggleSidebar={() => setIsSidebarCollapsed(p => !p)} />
+        <Header isConnected={isConnected} alertCount={pendingCount} toggleSidebar={() => setIsSidebarCollapsed(p => !p)} theme={theme} setTheme={setTheme} />
         <div className="page-content">
           {renderPage()}
         </div>

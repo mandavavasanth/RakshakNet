@@ -1,5 +1,8 @@
 import os
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from pathlib import Path
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 
@@ -48,13 +51,13 @@ def seed_db():
 
             # Alerts in Hyderabad (lat: 17.38-17.40, lng: 78.47-78.50)
             alerts_data = [
-                models.Alert(deviceId="DEV001", helpType="SOS", lat=17.3850, lng=78.4867, status="Assigned", assignedTeam="Alpha Team"),
-                models.Alert(deviceId="DEV002", helpType="Medical", lat=17.3910, lng=78.4900, status="Assigned", assignedTeam="Bravo Squad"),
-                models.Alert(deviceId="DEV003", helpType="Water", lat=17.3880, lng=78.4750, status="Pending"),
-                models.Alert(deviceId="DEV004", helpType="Food", lat=17.3950, lng=78.4800, status="Pending"),
-                models.Alert(deviceId="DEV005", helpType="Medical", lat=17.3980, lng=78.4950, status="Pending"),
-                models.Alert(deviceId="DEV006", helpType="SOS", lat=17.4000, lng=78.4700, status="Completed"),
-                models.Alert(deviceId="DEV007", helpType="Water", lat=17.3820, lng=78.4980, status="Completed")
+                models.Alert(deviceId="DEV001", helpType="SOS", lat=17.3850, lng=78.4867, rssi=-45, snr=12.5, accuracy=3.2, status="Assigned", assignedTeam="Alpha Team"),
+                models.Alert(deviceId="DEV002", helpType="Medical", lat=17.3910, lng=78.4900, rssi=-62, snr=9.8, accuracy=5.1, status="Assigned", assignedTeam="Bravo Squad"),
+                models.Alert(deviceId="DEV003", helpType="Water", lat=17.3880, lng=78.4750, rssi=-78, snr=6.3, accuracy=8.7, status="Pending"),
+                models.Alert(deviceId="DEV004", helpType="Food", lat=17.3950, lng=78.4800, rssi=-55, snr=11.2, accuracy=4.0, status="Pending"),
+                models.Alert(deviceId="DEV005", helpType="Medical", lat=17.3980, lng=78.4950, rssi=-91, snr=3.1, accuracy=15.4, status="Pending"),
+                models.Alert(deviceId="DEV006", helpType="SOS", lat=17.4000, lng=78.4700, rssi=-38, snr=13.7, accuracy=2.5, status="Completed"),
+                models.Alert(deviceId="DEV007", helpType="Water", lat=17.3820, lng=78.4980, rssi=-70, snr=7.9, accuracy=6.8, status="Completed")
             ]
             db.add_all(alerts_data)
             db.commit()
@@ -103,6 +106,29 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-@app.get("/")
-def read_root():
+@app.get("/api/health")
+def health_check():
     return {"status": "RakshakNet API is running"}
+
+# ---------------------------------------------------------------------------
+# Serve the Vite/React production build from dist/ when it exists.
+# This lets a single Render web service handle both API and frontend.
+# ---------------------------------------------------------------------------
+DIST_DIR = Path(__file__).parent / "dist"
+
+if DIST_DIR.is_dir():
+    # Serve hashed JS/CSS bundles at /assets
+    app.mount(
+        "/assets",
+        StaticFiles(directory=DIST_DIR / "assets"),
+        name="static-assets",
+    )
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """Return the requested file from dist/, falling back to index.html
+        so that React client-side routing works."""
+        file = DIST_DIR / full_path
+        if file.is_file():
+            return FileResponse(file)
+        return FileResponse(DIST_DIR / "index.html")

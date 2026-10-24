@@ -17,14 +17,11 @@ env/
 pip-log.txt
 pip-delete-this-directory.txt
 *.egg-info/
-dist/
-build/
 
 # Node.js
 node_modules/
 npm-debug.log
 yarn-error.log
-package-lock.json
 
 # Database
 *.db
@@ -38,12 +35,10 @@ bridge.log
 *.swp
 *.swo
 *~
-.DS_Store
 
 # Build outputs
 dist/
 build/
-*.log
 
 # OS
 Thumbs.db
@@ -57,4 +52,3 @@ htmlcov/
 # Temporary files
 *.tmp
 *.bak
-node_modules

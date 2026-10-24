@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../utils/api';
-import { MapPin, Clock, Users, AlertCircle, ShieldAlert, Crosshair, CheckCircle2 } from 'lucide-react';
+import { MapPin, Clock, Users, AlertCircle, ShieldAlert, Crosshair, CheckCircle2, Wifi, Target } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 
 const ActiveAlerts = ({ alerts, teams, setAlerts }) => {
@@ -21,6 +21,22 @@ const ActiveAlerts = ({ alerts, teams, setAlerts }) => {
       case 'Water': return 'var(--accent-yellow)';
       default: return 'var(--accent-amber)';
     }
+  };
+
+  const getSignalColor = (rssi) => {
+    if (rssi === null || rssi === undefined) return 'var(--text-muted)';
+    if (rssi >= -50) return '#22c55e';  // Excellent
+    if (rssi >= -70) return '#eab308';  // Moderate
+    if (rssi >= -90) return '#f97316';  // Weak
+    return '#ef4444';                   // Very weak
+  };
+
+  const getSignalLabel = (rssi) => {
+    if (rssi === null || rssi === undefined) return 'N/A';
+    if (rssi >= -50) return 'Excellent';
+    if (rssi >= -70) return 'Good';
+    if (rssi >= -90) return 'Weak';
+    return 'Very Weak';
   };
 
   const getBadgeClass = (status) => {
@@ -121,9 +137,11 @@ const ActiveAlerts = ({ alerts, teams, setAlerts }) => {
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontFamily: 'var(--font-mono)' }}>{alert.deviceId}</span>
                     <span className={`stat-badge ${getBadgeClass(alert.status)}`}>{alert.status}</span>
                   </div>
-                  <div className="flex-row" style={{ gap: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <div className="flex-row" style={{ gap: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                     <span className="flex-row" style={{ gap: '0.375rem', fontFamily: 'var(--font-mono)' }}><Crosshair size={14} /> {alert.lat}°N, {alert.lng}°E</span>
                     <span className="flex-row" style={{ gap: '0.375rem', fontFamily: 'var(--font-mono)' }}><Clock size={14} /> {formatTime(alert.timestamp)}</span>
+                    {alert.rssi != null && <span className="flex-row" style={{ gap: '0.375rem', fontFamily: 'var(--font-mono)', color: getSignalColor(alert.rssi) }}><Wifi size={14} /> {alert.rssi} dBm</span>}
+                    {alert.accuracy != null && <span className="flex-row" style={{ gap: '0.375rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}><Target size={14} /> ±{alert.accuracy}m</span>}
                     {alert.assignedTeam && <span className="flex-row" style={{ gap: '0.375rem', color: 'var(--text-secondary)' }}><Users size={14} /> {alert.assignedTeam}</span>}
                   </div>
                 </div>
@@ -194,6 +212,21 @@ const ActiveAlerts = ({ alerts, teams, setAlerts }) => {
                       
                       <span style={{ color: 'var(--text-muted)' }}>Team:</span>
                       <span style={{ color: 'var(--text-primary)' }}>{alert.assignedTeam || 'None assigned'}</span>
+
+                      <span style={{ color: 'var(--text-muted)' }}>RSSI:</span>
+                      <span style={{ color: getSignalColor(alert.rssi), fontFamily: 'var(--font-mono)', fontWeight: '600' }}>
+                        {alert.rssi != null ? `${alert.rssi} dBm (${getSignalLabel(alert.rssi)})` : 'N/A'}
+                      </span>
+
+                      <span style={{ color: 'var(--text-muted)' }}>SNR:</span>
+                      <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                        {alert.snr != null ? `${alert.snr} dB` : 'N/A'}
+                      </span>
+
+                      <span style={{ color: 'var(--text-muted)' }}>Accuracy:</span>
+                      <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: '600' }}>
+                        {alert.accuracy != null ? `±${alert.accuracy} m` : 'N/A'}
+                      </span>
                     </div>
                   </div>
                   <div style={{ height: '200px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-primary)' }}>

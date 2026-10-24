@@ -49,6 +49,30 @@
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
+body.theme-high-contrast {
+  --bg-base: #000000;
+  --bg-card: #000000;
+  --bg-card-hover: #111111;
+  --bg-sidebar: #000000;
+  --bg-header: #000000;
+  
+  --border-primary: #ffffff;
+  --border-accent: #ffffff;
+  --border-focus: #ffff00;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #eeeeee;
+  --text-muted: #dddddd;
+  
+  --accent-green: #00ff00;
+  --accent-amber: #ffaa00;
+  --accent-blue: #0088ff;
+  --accent-red: #ff0000;
+  --accent-cyan: #00ffff;
+  --accent-purple: #ff00ff;
+  --accent-yellow: #ffff00;
+}
+
 * { 
   margin: 0; 
   padding: 0; 

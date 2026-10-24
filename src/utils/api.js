@@ -41,6 +41,10 @@ export const api = {
     method: 'PATCH', headers: authHeaders, body: JSON.stringify(data)
   }),
 
+  clearAllAlerts: () => request('/api/alerts', {
+    method: 'DELETE', headers: authHeaders
+  }),
+
   // Teams
   fetchTeams: () => request('/api/teams', { headers: readHeaders }),
 

@@ -10,6 +10,9 @@ class Alert(Base):
     lat = Column(Float, nullable=False)
     lng = Column(Float, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    rssi = Column(Integer, nullable=True)  # LoRa signal strength in dBm (e.g. -45)
+    snr = Column(Float, nullable=True)  # Signal-to-Noise Ratio in dB (e.g. 12.5)
+    accuracy = Column(Float, nullable=True)  # Estimated GPS accuracy in meters
     status = Column(String(50), default='Pending', index=True)  # Pending, Assigned, Completed
     assignedTeam = Column(String(255), nullable=True)
 

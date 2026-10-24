@@ -10,6 +10,8 @@ const TeamCard = ({ team }) => {
     return 'var(--accent-green)';
   };
 
+  const [showInventory, setShowInventory] = React.useState(false);
+
   return (
     <div className="card flex-col" style={{ gap: '1.25rem' }}>
       <div className="flex-between">
@@ -40,9 +42,43 @@ const TeamCard = ({ team }) => {
         )}
       </div>
 
-      <button className="btn btn-ghost" style={{ width: '100%', marginTop: '0.5rem', borderStyle: 'dashed' }}>
-        <Package size={16} /> View Inventory
-      </button>
+      <div className="flex-col" style={{ gap: '0.5rem' }}>
+        <button 
+          className="btn btn-ghost" 
+          style={{ width: '100%', marginTop: '0.5rem', borderStyle: 'dashed' }}
+          onClick={() => setShowInventory(!showInventory)}
+        >
+          <Package size={16} /> {showInventory ? 'Hide Inventory' : 'View Inventory'}
+        </button>
+
+        {showInventory && (
+          <div className="animate-fade-in" style={{ 
+            background: 'rgba(0,0,0,0.2)', 
+            padding: '0.75rem', 
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-primary)',
+            fontSize: '0.75rem',
+            color: 'var(--text-secondary)'
+          }}>
+            <div className="flex-between" style={{ marginBottom: '0.25rem' }}>
+              <span>Medical Kits:</span>
+              <span style={{ color: 'var(--text-primary)' }}>12</span>
+            </div>
+            <div className="flex-between" style={{ marginBottom: '0.25rem' }}>
+              <span>Food Rations:</span>
+              <span style={{ color: 'var(--text-primary)' }}>24</span>
+            </div>
+            <div className="flex-between" style={{ marginBottom: '0.25rem' }}>
+              <span>Water Bottles:</span>
+              <span style={{ color: 'var(--text-primary)' }}>48</span>
+            </div>
+            <div className="flex-between">
+              <span>Sat Phones:</span>
+              <span style={{ color: 'var(--text-primary)' }}>2</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="flex-col" style={{ marginTop: '0.5rem' }}>
         <div className="flex-between" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>

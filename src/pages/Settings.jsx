@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Monitor, Bell, Server, Key, Info, CheckCircle2 } from 'lucide-react';
+import { Settings as SettingsIcon, Monitor, Bell, Server, Key, Info, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { api } from '../utils/api';
 
-const Settings = () => {
+const Settings = ({ theme, setTheme }) => {
   const [acoustic, setAcoustic] = useState(true);
   const [pushNotif, setPushNotif] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleClearAlerts = async () => {
+    if (window.confirm("Are you sure you want to clear all alerts? This cannot be undone.")) {
+      setIsClearing(true);
+      await api.clearAllAlerts();
+      setIsClearing(false);
+      alert("All alerts have been cleared.");
+    }
+  };
 
   const toggleStyle = (active) => ({
     position: 'relative', width: '44px', height: '24px', 
@@ -37,10 +48,14 @@ const Settings = () => {
             <span style={{ fontWeight: '500' }}>Theme Preference</span>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Select your interface color scheme</span>
           </div>
-          <select style={{ minWidth: '200px' }}>
-            <option>Dark (Military Tactical)</option>
-            <option>High Contrast</option>
-            <option>Light (Daylight Ops)</option>
+          <select 
+            style={{ minWidth: '200px' }} 
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+          >
+            <option value="Military">Dark (Military Tactical)</option>
+            <option value="High Contrast">High Contrast</option>
+            <option value="Light">Light (Daylight Ops)</option>
           </select>
         </div>
       </div>
@@ -85,6 +100,25 @@ const Settings = () => {
             <Key size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input type="password" value="************************" readOnly style={{ width: '100%', paddingLeft: '2.5rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }} />
           </div>
+        </div>
+      </div>
+
+      <div className="card flex-col" style={{ gap: '1.5rem' }}>
+        <h3 className="flex-row" style={{ gap: '0.5rem', margin: 0, fontSize: '1.125rem', borderBottom: '1px solid var(--border-primary)', paddingBottom: '0.75rem' }}>
+          <AlertTriangle size={18} className="text-accent-red" /> Data Management
+        </h3>
+        <div className="flex-between" style={{ padding: '0.5rem 0', alignItems: 'center' }}>
+          <div className="flex-col">
+            <span style={{ fontWeight: '500' }}>Clear Database</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Permanently remove all alerts from the system</span>
+          </div>
+          <button 
+            className="btn btn-danger" 
+            onClick={handleClearAlerts}
+            disabled={isClearing}
+          >
+            {isClearing ? 'Clearing...' : 'Clear All Alerts'}
+          </button>
         </div>
       </div>
 

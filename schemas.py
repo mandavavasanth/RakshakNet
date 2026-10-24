@@ -7,6 +7,9 @@ class AlertCreate(BaseModel):
     helpType: str = Field(..., pattern="^(SOS|Medical|Water|Food)$")
     lat: float = Field(..., ge=-90, le=90)
     lng: float = Field(..., ge=-180, le=180)
+    rssi: Optional[int] = None
+    snr: Optional[float] = None
+    accuracy: Optional[float] = None
     timestamp: Optional[datetime] = None
 
 class AlertUpdate(BaseModel):
@@ -19,6 +22,9 @@ class AlertResponse(BaseModel):
     helpType: str
     lat: float
     lng: float
+    rssi: Optional[int] = None
+    snr: Optional[float] = None
+    accuracy: Optional[float] = None
     timestamp: datetime
     status: str
     assignedTeam: Optional[str]

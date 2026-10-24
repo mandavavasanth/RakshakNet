@@ -80,6 +80,9 @@ const LiveGPSMap = ({ alerts = [], teams = [] }) => {
                     <span style={{color: '#666'}}>ID:</span> {a.deviceId}<br />
                     <span style={{color: '#666'}}>Status:</span> {a.status}<br />
                     {a.assignedTeam && <><span style={{color: '#666'}}>Team:</span> {a.assignedTeam}<br /></>}
+                    {a.rssi != null && <><span style={{color: '#666'}}>RSSI:</span> <span style={{color: a.rssi >= -50 ? '#16a34a' : a.rssi >= -70 ? '#ca8a04' : '#dc2626', fontWeight: '600'}}>{a.rssi} dBm</span><br /></>}
+                    {a.snr != null && <><span style={{color: '#666'}}>SNR:</span> {a.snr} dB<br /></>}
+                    {a.accuracy != null && <><span style={{color: '#666'}}>Accuracy:</span> <span style={{fontWeight: '600', color: '#0891b2'}}>±{a.accuracy}m</span><br /></>}
                     <div style={{marginTop: '4px', fontFamily: 'monospace', fontSize: '0.8rem', color: '#666'}}>
                       {a.lat?.toFixed(4)}°N, {a.lng?.toFixed(4)}°E
                     </div>

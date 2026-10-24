@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
-const useWebSocket = (url) => {
+const useWebSocket = (url, onMessage) => {
   const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState(null);
   const ws = useRef(null);
   const reconnectTimeout = useRef(null);
 
@@ -29,9 +28,9 @@ const useWebSocket = (url) => {
       ws.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          setLastMessage(data);
+          if (onMessage) onMessage(data);
         } catch (e) {
-          setLastMessage(event.data);
+          if (onMessage) onMessage(event.data);
         }
       };
     } catch (e) {
@@ -56,7 +55,7 @@ const useWebSocket = (url) => {
     }
   };
 
-  return { isConnected, lastMessage, sendMessage };
+  return { isConnected, sendMessage };
 };
 
 export default useWebSocket;

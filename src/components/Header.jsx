@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, RefreshCw, Volume2, LayoutGrid, CheckCircle2 } from 'lucide-react';
 
-const Header = ({ isConnected, alertCount = 0, toggleSidebar }) => {
+const Header = ({ isConnected, alertCount = 0, toggleSidebar, theme, setTheme }) => {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -51,9 +51,13 @@ const Header = ({ isConnected, alertCount = 0, toggleSidebar }) => {
       </div>
 
       <div className="header-icons flex-row" style={{ gap: '0.75rem' }}>
-        <select style={{ marginRight: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)', padding: '0.375rem 0.75rem', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: '500' }}>
-          <option>🌴 Military</option>
-          <option>High Contrast</option>
+        <select 
+          value={theme}
+          onChange={(e) => setTheme(e.target.value)}
+          style={{ marginRight: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)', padding: '0.375rem 0.75rem', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: '500' }}
+        >
+          <option value="Military">🌴 Military</option>
+          <option value="High Contrast">High Contrast</option>
         </select>
         <button className="icon-btn" style={{ borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} onClick={() => alert('Refreshing data...')}><RefreshCw size={16} /></button>
         <button className="icon-btn" style={{ borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} onClick={() => alert('Audio alerts toggled')}><Volume2 size={16} /></button>
