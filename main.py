@@ -126,9 +126,8 @@ if DIST_DIR.is_dir():
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
-        """Return the requested file from dist/, falling back to index.html
-        so that React client-side routing works."""
-        file = DIST_DIR / full_path
-        if file.is_file():
+        file = (DIST_DIR / full_path).resolve()
+        if file.is_file() and file.is_relative_to(DIST_DIR.resolve()):
             return FileResponse(file)
         return FileResponse(DIST_DIR / "index.html")
+
